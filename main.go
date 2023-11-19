@@ -75,13 +75,12 @@ func subscribeMQTT() {
 
 	client = mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		log.Println(token.Error())
+		log.Fatal(token.Error())
 	}
 	log.Println("client connected to broker " + broker)
 
 	if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
-		log.Println(token.Error())
-		os.Exit(1)
+		log.Fatal(token.Error())
 	}
 	log.Println("subscribed to topic " + topic)
 }
@@ -95,19 +94,20 @@ func main() {
 			panic(err)
 		}
 		defer f.Close()
+		log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 		log.SetOutput(f)
 	} else {
-		sysLog, err := syslog.New(syslog.LOG_ALERT|syslog.LOG_DAEMON, "wol-mqtt")
+		sysLog, err := syslog.New(syslog.LOG_INFO|syslog.LOG_USER, "wol-mqtt")
 		if err != nil {
 			panic(err)
 		}
+		log.SetFlags(0) //purely the log message, as date and time are added by syslog
 		log.SetOutput(sysLog)
 	}
 
 	subscribeMQTT()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-
 	defer stop()
 
 	var wg sync.WaitGroup
